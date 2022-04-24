@@ -13,17 +13,17 @@ class AdminController extends Controller
 {
     public function index(){
         $data = User::select(\DB::raw("COUNT(*) as count"), \DB::raw("DAYNAME(created_at) as day_name"), \DB::raw("DAY(created_at) as day"))
-        ->where('created_at', '>', Carbon::today()->subDay(6))
-        ->groupBy('day_name','day')
-        ->orderBy('day')
-        ->get();
-     $array[] = ['Name', 'Number'];
-     foreach($data as $key => $value)
-     {
-       $array[++$key] = [$value->day_name, $value->count];
-     }
-    //  return $data;
-     return view('backend.index')->with('users', json_encode($array));
+            ->where('created_at', '>', Carbon::today()->subDay(6))
+            ->groupBy('day_name','day')
+            ->orderBy('day')
+            ->get();
+        $array[] = ['Name', 'Number'];
+        foreach($data as $key => $value)
+        {
+            $array[++$key] = [$value->day_name, $value->count];
+        }
+        //  return $data;
+        return view('backend.index')->with('users', json_encode($array));
     }
 
     public function profile(){
@@ -93,9 +93,9 @@ class AdminController extends Controller
             'new_password' => ['required'],
             'new_confirm_password' => ['same:new_password'],
         ]);
-   
+
         User::find(auth()->user()->id)->update(['password'=> Hash::make($request->new_password)]);
-   
+
         return redirect()->route('admin')->with('success','Password successfully changed');
     }
 
@@ -103,17 +103,17 @@ class AdminController extends Controller
     public function userPieChart(Request $request){
         // dd($request->all());
         $data = User::select(\DB::raw("COUNT(*) as count"), \DB::raw("DAYNAME(created_at) as day_name"), \DB::raw("DAY(created_at) as day"))
-        ->where('created_at', '>', Carbon::today()->subDay(6))
-        ->groupBy('day_name','day')
-        ->orderBy('day')
-        ->get();
-     $array[] = ['Name', 'Number'];
-     foreach($data as $key => $value)
-     {
-       $array[++$key] = [$value->day_name, $value->count];
-     }
-    //  return $data;
-     return view('backend.index')->with('course', json_encode($array));
+            ->where('created_at', '>', Carbon::today()->subDay(6))
+            ->groupBy('day_name','day')
+            ->orderBy('day')
+            ->get();
+        $array[] = ['Name', 'Number'];
+        foreach($data as $key => $value)
+        {
+            $array[++$key] = [$value->day_name, $value->count];
+        }
+        //  return $data;
+        return view('backend.index')->with('course', json_encode($array));
     }
 
     // public function activity(){
@@ -121,4 +121,71 @@ class AdminController extends Controller
     //     $activity= Activity::all();
     //     return view('backend.layouts.activity')->with('activities',$activity);
     // }
+
+
+    /*backup*/
+
+    public function backup(){
+        $menu='backup';
+        $smenu='';
+        $connection = mysqli_connect('127.0.0.1','fmgjfgmg_cesium','0AE7JDW;M?;A','fmgjfgmg_cesiumsecurity');
+        // mysqli_set_charset($connection,"utf8mb4");
+        $tables = array();
+        $result = mysqli_query($connection,"SHOW TABLES");
+        while($row = mysqli_fetch_row($result)){
+            $tables[] = $row[0];
+        }
+        $return = '';
+        foreach($tables as $table){
+            $result = mysqli_query($connection,"SELECT * FROM ".$table);
+            $num_fields = mysqli_num_fields($result);
+
+            $return .= 'DROP TABLE IF EXISTS '.$table.';';
+            $row2 = mysqli_fetch_row(mysqli_query($connection,"SHOW CREATE TABLE ".$table));
+            $return .= "\n\n".$row2[1].";\n\n\n";
+
+            for($i=0;$i<$num_fields;$i++){
+                while($row = mysqli_fetch_row($result)){
+                    $return .= "INSERT INTO ".$table." VALUES(";
+                    for($j=0;$j<$num_fields;$j++){
+                        $row[$j] = addslashes($row[$j]);
+                        if(isset($row[$j])){ $return .= '"'.$row[$j].'"';}
+                        else{ $return .= '""';}
+                        if($j<$num_fields-1){ $return .= ',';}
+                    }
+                    $return .= ");\n\n";
+                }
+            }
+            $return .= "\n\n\n";
+        }
+        //save file
+        $handle = fopen("backup/backup.sql","w+");
+        fwrite($handle,$return);
+        fclose($handle);
+
+        return redirect()->back()->withInput();
+
+    }
+
+    //download
+
+    public function download(){
+
+        $filename = 'backup/backup.sql';
+
+        if (file_exists($filename)) {
+
+            $headers = array(
+                'Content-Type: application/sql',
+            );
+
+            return response()->download($filename, 'filename.sql', $headers);
+
+        } else {
+            echo "The file $filename does not exist";
+        }
+    }
+
+
+
 }

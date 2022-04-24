@@ -141,6 +141,10 @@ Route::group(['prefix'=>'/admin','middleware'=>['auth','admin']],function(){
     // Password Change
     Route::get('change-password', 'AdminController@changePassword')->name('change.password.form');
     Route::post('change-password', 'AdminController@changPasswordStore')->name('change.password');
+    // export
+    Route::get('backup','AdminController@backup')->name('backup');
+    Route::get('download','AdminController@download')->name('download');
+
 });
 
 
